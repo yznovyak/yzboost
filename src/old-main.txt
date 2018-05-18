@@ -1,0 +1,46 @@
+
+
+
+
+
+
+Matrix X_train, X_test;
+Vector y_train, y_test;
+
+int main2() {
+  yzboost::util::diagnose_openmp();
+  cerr.precision(6);
+
+  T t0 = now();  // record start time
+  LOG << "Reading input ...";
+  if (!read_csv("../data/higgs/HIGGS-100.csv", X_train)) {
+    LOG << "failed to read data!";
+    return 1;
+  }
+  if (X_train.size() == 0) {
+    LOG << "didn't load anything";
+  }
+  LOG << "Loaded " << X_train.size() << " x " << X_train[0].size() << " float matrix in " << seconds_since(t0);
+
+  X_test = extract_validation_split(X_train, 1./22);
+  y_train = extract_column(X_train, 0);
+  y_test = extract_column(X_test, 0);
+
+  LOG << "X_train: " << X_train.size() << " x " << X_train[0].size() << ", y_train: " << y_train.size();
+  if (!X_test.empty())
+    LOG << "X_test: " << X_test.size() << " x " << X_test[0].size() << ", y_test: " << y_test.size();
+
+  t0 = now();
+  YZBoostClassifier clf;
+  clf.opts.num_trees = 100;
+  clf.opts.tree_depth = 10;
+  clf.opts.valid_X = &X_test;
+  clf.opts.valid_y = &y_test;
+  clf.fit(X_train, y_train);
+  LOG << "Fit in " << seconds_since(t0);
+
+  std::ofstream f("model-tiny.txt");
+  clf.save(f);
+
+  return 0;
+}
